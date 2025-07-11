@@ -1,0 +1,111 @@
+/* 2025년 디자인 트렌드 메인 앱 스타일 */
+
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-0);
+  transition: background-color var(--transition-normal);
+}
+
+.dark .App {
+  background: var(--surface-900);
+}
+
+/* 메인 콘텐츠 영역 */
+.main-content {
+  flex: 1;
+  background: linear-gradient(
+    135deg,
+    var(--surface-50) 0%,
+    var(--surface-100) 100%
+  );
+  min-height: calc(100vh - 144px); /* 헤더(72px) + 푸터(약72px) 제외 */
+  transition: background var(--transition-normal);
+}
+
+.dark .main-content {
+  background: linear-gradient(
+    135deg,
+    var(--surface-900) 0%,
+    var(--surface-800) 100%
+  );
+}
+
+/* 로그인 페이지 메인 콘텐츠 */
+.login-page-main {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0f2ff 0%, #e6e9ff 100%);
+  padding: 0;
+}
+
+.dark .login-page-main {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+/* 페이지 컨테이너 */
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-16) var(--spacing-4);
+  min-height: 100%;
+}
+
+.page-container h1 {
+  color: var(--text-primary);
+  font-size: var(--font-size-4xl);
+  font-weight: 700;
+  margin-bottom: var(--spacing-6);
+  text-align: center;
+  background: linear-gradient(
+    135deg,
+    var(--text-primary),
+    var(--text-secondary)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  position: relative;
+}
+
+.page-container h1::after {
+  content: "";
+  position: absolute;
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--primary-color),
+    var(--primary-light)
+  );
+  border-radius: var(--radius-full);
+}
+
+.page-container p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-lg);
+  text-align: center;
+  line-height: 1.7;
+  margin-bottom: var(--spacing-8);
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .page-container {
+    padding: var(--spacing-8) var(--spacing-3);
+  }
+
+  .page-container h1 {
+    font-size: var(--font-size-3xl);
+  }
+
+  .page-container p {
+    font-size: var(--font-size-base);
+  }
+}
