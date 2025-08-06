@@ -1,13 +1,501 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 디스코드 스타일 디자인 시스템 */
+:root {
+  /* Nexus 브랜드 컬러 */
+  --nexus-dark: #1a1a2e;
+  --nexus-blue: #16213e;
+  --nexus-purple: #0f3460;
+  --nexus-gold: #e94560;
+  --nexus-light: #f8f9fa;
+
+  /* 디스코드 스타일 컬러 */
+  --primary: #5865f2;
+  --primary-dark: #4752c4;
+  --secondary: #4f545c;
+  --accent: #f59e0b;
+  --success: #57f287;
+  --danger: #ed4245;
+  --warning: #faa61a;
+  --info: #5865f2;
+
+  /* 디스코드 다크 테마 */
+  --bg-primary: #36393f;
+  --bg-secondary: #2f3136;
+  --bg-tertiary: #202225;
+  --bg-quaternary: #292b2f;
+  --bg-dark: #1a1a2e;
+  --bg-dark-secondary: #2f3136;
+  --bg-dark-tertiary: #202225;
+
+  --text-primary: #dcddde;
+  --text-secondary: #b9bbbe;
+  --text-muted: #72767d;
+  --text-dark: #dcddde;
+  --text-dark-secondary: #b9bbbe;
+
+  --border: #202225;
+  --border-dark: #40444b;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.1);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.2), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.2),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.2),
+    0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  --radius: 0.375rem;
+  --radius-sm: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* 다크 모드 (기본값) */
+[data-theme="dark"] {
+  --bg-primary: #36393f;
+  --bg-secondary: #2f3136;
+  --bg-tertiary: #202225;
+  --bg-quaternary: #292b2f;
+  --text-primary: #dcddde;
+  --text-secondary: #b9bbbe;
+  --text-muted: #72767d;
+  --border: #202225;
+}
+
+/* 라이트 모드 */
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --bg-quaternary: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border: #e2e8f0;
+}
+
+/* 기본 스타일 */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  transition: all 0.2s ease;
+}
+
+/* 스크롤바 스타일링 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--secondary);
+  border-radius: var(--radius);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* 애니메이션 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+.animate-pulse-slow {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* 호버 효과 */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* 포커스 링 */
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+/* 버튼 스타일 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-secondary {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-quaternary);
+}
+
+.btn-secondary:active {
+  transform: translateY(1px);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.btn-ghost:active {
+  transform: translateY(1px);
+}
+
+.btn-danger {
+  background-color: var(--danger);
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #c53030;
+}
+
+.btn-danger:active {
+  transform: translateY(1px);
+}
+
+/* 카드 스타일 */
+.card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--primary);
+}
+
+.card-interactive {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* 입력 필드 스타일 */
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+/* 모달 스타일 */
+.modal-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+}
+
+/* 로딩 스피너 */
+.spinner {
+  border: 2px solid var(--border);
+  border-top: 2px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 그라데이션 */
+.gradient-primary {
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  );
+}
+
+.gradient-secondary {
+  background: linear-gradient(
+    135deg,
+    var(--secondary) 0%,
+    var(--bg-tertiary) 100%
+  );
+}
+
+/* 글래스 효과 */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"] .glass {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 테마 유틸리티 */
+.bg-theme-bg {
+  background-color: var(--bg-primary);
+}
+
+.text-theme-text {
+  color: var(--text-primary);
+}
+
+.text-theme-text-secondary {
+  color: var(--text-secondary);
+}
+
+.border-theme-border {
+  border-color: var(--border);
+}
+
+/* Nexus 브랜드 컬러 */
+.bg-nexus-dark {
+  background-color: var(--nexus-dark);
+}
+
+.bg-nexus-blue {
+  background-color: var(--nexus-blue);
+}
+
+.bg-nexus-purple {
+  background-color: var(--nexus-purple);
+}
+
+.bg-nexus-gold {
+  background-color: var(--nexus-gold);
+}
+
+.bg-nexus-light {
+  background-color: var(--nexus-light);
+}
+
+.text-nexus-gold {
+  color: var(--nexus-gold);
+}
+
+.text-nexus-light {
+  color: var(--nexus-light);
+}
+
+/* 추가 색상 변수들 */
+.text-primary {
+  color: var(--primary);
+}
+
+.text-secondary {
+  color: var(--secondary);
+}
+
+.text-accent {
+  color: var(--accent);
+}
+
+.text-success {
+  color: var(--success);
+}
+
+.text-danger {
+  color: var(--danger);
+}
+
+.text-warning {
+  color: var(--warning);
+}
+
+.text-info {
+  color: var(--info);
+}
+
+.bg-primary {
+  background-color: var(--primary);
+}
+
+.bg-primary-dark {
+  background-color: var(--primary-dark);
+}
+
+.bg-secondary {
+  background-color: var(--secondary);
+}
+
+.bg-accent {
+  background-color: var(--accent);
+}
+
+.bg-success {
+  background-color: var(--success);
+}
+
+.bg-danger {
+  background-color: var(--danger);
+}
+
+.bg-warning {
+  background-color: var(--warning);
+}
+
+.bg-info {
+  background-color: var(--info);
+}
+
+.bg-bg-primary {
+  background-color: var(--bg-primary);
+}
+
+.bg-bg-secondary {
+  background-color: var(--bg-secondary);
+}
+
+.bg-bg-tertiary {
+  background-color: var(--bg-tertiary);
+}
+
+.bg-bg-quaternary {
+  background-color: var(--bg-quaternary);
+}
+
+.text-text-primary {
+  color: var(--text-primary);
+}
+
+.text-text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-text-muted {
+  color: var(--text-muted);
+}
+
+.border-border {
+  border-color: var(--border);
 }

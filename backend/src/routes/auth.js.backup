@@ -1,0 +1,396 @@
+const express = require("express");
+const passport = require("passport");
+const Joi = require("joi");
+const { getOne, execute } = require("../config/database");
+const {
+  generateToken,
+  hashPassword,
+  comparePassword,
+} = require("../config/passport");
+const { setRiotCache, getRiotCache } = require("../config/redis");
+const axios = require("axios");
+
+const router = express.Router();
+
+// Validation schemas
+const registerSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().min(8).required(),
+  nexusNickname: Joi.string().min(2).max(100).required(),
+});
+
+const loginSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().required(),
+});
+
+const riotIdSchema = Joi.object({
+  riotNickname: Joi.string().required(),
+  riotTag: Joi.string().required(),
+});
+
+// Register new user
+router.post("/register", async (req, res) => {
+  try {
+    const { error, value } = registerSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        error: "Validation Error",
+        message: error.details[0].message,
+      });
+    }
+
+    const { email, password, nexusNickname } = value;
+
+    // Check if user already exists
+    const existingUser = await getOne("SELECT * FROM users WHERE email = $1", [
+      email,
+    ]);
+    if (existingUser) {
+      return res.status(409).json({
+        error: "Conflict",
+        message: "User with this email already exists",
+      });
+    }
+
+    // Check if nickname is taken
+    const existingNickname = await getOne(
+      "SELECT * FROM users WHERE nexus_nickname = $1",
+      [nexusNickname]
+    );
+    if (existingNickname) {
+      return res.status(409).json({
+        error: "Conflict",
+        message: "Nickname is already taken",
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await hashPassword(password);
+
+    // Create user
+    const newUser = await getOne(
+      `INSERT INTO users (email, password_hash, nexus_nickname, auth_provider)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [email, hashedPassword, nexusNickname, "local"]
+    );
+
+    // Generate token
+    const token = generateToken(newUser);
+
+    res.status(201).json({
+      message: "User registered successfully",
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        nexusNickname: newUser.nexus_nickname,
+        isVerified: newUser.is_verified,
+        isStreamer: newUser.is_streamer,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error("Registration error:", error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to register user",
+    });
+  }
+});
+
+// Login user
+router.post("/login", async (req, res) => {
+  try {
+    const { error, value } = loginSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        error: "Validation Error",
+        message: error.details[0].message,
+      });
+    }
+
+    const { email, password } = value;
+
+    // Find user
+    const user = await getOne("SELECT * FROM users WHERE email = $1", [email]);
+    if (!user) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Invalid email or password",
+      });
+    }
+
+    // Check password
+    const isValidPassword = await comparePassword(password, user.password_hash);
+    if (!isValidPassword) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Invalid email or password",
+      });
+    }
+
+    // Update last seen
+    await execute(
+      "UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE id = $1",
+      [user.id]
+    );
+
+    // Generate token
+    const token = generateToken(user);
+
+    res.json({
+      message: "Login successful",
+      user: {
+        id: user.id,
+        email: user.email,
+        nexusNickname: user.nexus_nickname,
+        isVerified: user.is_verified,
+        isStreamer: user.is_streamer,
+        avatarUrl: user.avatar_url,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to login",
+    });
+  }
+});
+
+// Google OAuth routes
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+router.get(
+  "/google/callback",
+  passport.authenticate("google", { session: false }),
+  (req, res) => {
+    const token = generateToken(req.user);
+    res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
+  }
+);
+
+// Discord OAuth routes
+router.get("/discord", passport.authenticate("discord"));
+
+router.get(
+  "/discord/callback",
+  passport.authenticate("discord", { session: false }),
+  (req, res) => {
+    const token = generateToken(req.user);
+    res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
+  }
+);
+
+// Link Riot ID
+router.post("/link-riot", async (req, res) => {
+  try {
+    const { error, value } = riotIdSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        error: "Validation Error",
+        message: error.details[0].message,
+      });
+    }
+
+    const { riotNickname, riotTag } = value;
+    const userId = req.user.id;
+
+    // Check cache first
+    const cacheKey = `summoner:${riotNickname}:${riotTag}`;
+    let summonerData = await getRiotCache(cacheKey);
+
+    if (!summonerData) {
+      // Fetch from Riot API
+      const response = await axios.get(
+        `${
+          process.env.RIOT_API_BASE_URL
+        }/lol/summoner/v4/summoners/by-name/${encodeURIComponent(
+          riotNickname
+        )}`,
+        {
+          headers: {
+            "X-Riot-Token": process.env.RIOT_API_KEY,
+          },
+        }
+      );
+
+      summonerData = response.data;
+
+      // Cache the result
+      await setRiotCache(cacheKey, summonerData, 300); // 5 minutes
+    }
+
+    // Update user with Riot ID
+    await execute(
+      `UPDATE users 
+       SET riot_nickname = $1, riot_tag = $2, puuid = $3, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $4`,
+      [riotNickname, riotTag, summonerData.puuid, userId]
+    );
+
+    res.json({
+      message: "Riot ID linked successfully",
+      riotId: {
+        nickname: riotNickname,
+        tag: riotTag,
+        puuid: summonerData.puuid,
+      },
+    });
+  } catch (error) {
+    console.error("Riot ID linking error:", error);
+
+    if (error.response?.status === 404) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Riot ID not found",
+      });
+    }
+
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to link Riot ID",
+    });
+  }
+});
+
+// Verify account
+router.post("/verify", async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Update user verification status
+    await execute(
+      "UPDATE users SET is_verified = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1",
+      [userId]
+    );
+
+    res.json({
+      message: "Account verified successfully",
+    });
+  } catch (error) {
+    console.error("Account verification error:", error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to verify account",
+    });
+  }
+});
+
+// Get current user
+router.get("/me", async (req, res) => {
+  try {
+    const user = await getOne("SELECT * FROM users WHERE id = $1", [
+      req.user.id,
+    ]);
+
+    if (!user) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        nexusNickname: user.nexus_nickname,
+        riotNickname: user.riot_nickname,
+        riotTag: user.riot_tag,
+        puuid: user.puuid,
+        avatarUrl: user.avatar_url,
+        isVerified: user.is_verified,
+        isStreamer: user.is_streamer,
+        isOnline: user.is_online,
+        lastSeen: user.last_seen,
+        tierInfo: user.tier_info,
+        mainLane: user.main_lane,
+        mostChampions: user.most_champions,
+        createdAt: user.created_at,
+      },
+    });
+  } catch (error) {
+    console.error("Get user error:", error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to get user information",
+    });
+  }
+});
+
+// Update user profile
+router.put("/profile", async (req, res) => {
+  try {
+    const { nexusNickname, mainLane, mostChampions } = req.body;
+    const userId = req.user.id;
+
+    // Check if nickname is taken by another user
+    if (nexusNickname) {
+      const existingUser = await getOne(
+        "SELECT * FROM users WHERE nexus_nickname = $1 AND id != $2",
+        [nexusNickname, userId]
+      );
+      if (existingUser) {
+        return res.status(409).json({
+          error: "Conflict",
+          message: "Nickname is already taken",
+        });
+      }
+    }
+
+    // Update user profile
+    const updateFields = [];
+    const updateValues = [];
+    let paramCount = 1;
+
+    if (nexusNickname) {
+      updateFields.push(`nexus_nickname = $${paramCount}`);
+      updateValues.push(nexusNickname);
+      paramCount++;
+    }
+
+    if (mainLane) {
+      updateFields.push(`main_lane = $${paramCount}`);
+      updateValues.push(mainLane);
+      paramCount++;
+    }
+
+    if (mostChampions) {
+      updateFields.push(`most_champions = $${paramCount}`);
+      updateValues.push(JSON.stringify(mostChampions));
+      paramCount++;
+    }
+
+    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
+    updateValues.push(userId);
+
+    await execute(
+      `UPDATE users SET ${updateFields.join(", ")} WHERE id = $${paramCount}`,
+      updateValues
+    );
+
+    res.json({
+      message: "Profile updated successfully",
+    });
+  } catch (error) {
+    console.error("Profile update error:", error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "Failed to update profile",
+    });
+  }
+});
+
+// Logout
+router.post("/logout", (req, res) => {
+  res.json({
+    message: "Logged out successfully",
+  });
+});
+
+module.exports = router;
