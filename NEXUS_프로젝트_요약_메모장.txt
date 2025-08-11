@@ -1,0 +1,137 @@
+🧠 NEXUS 프로젝트 요약 메모장
+=====================================
+
+📋 프로젝트 개요
+-----------------
+NEXUS는 리그 오브 레전드(LoL) 사용자들을 위한 내전 관리 및 전적 분석 커뮤니티 플랫폼입니다.
+
+🏗️ 기술 스택
+-------------
+Frontend: React 19 + TypeScript, Zustand, TailwindCSS, Socket.IO Client
+Backend: Node.js + Express, PostgreSQL, Redis, Socket.IO, Passport.js, JWT
+
+🎯 주요 기능
+-------------
+1. 🔐 인증 시스템: OAuth (Discord, Google), JWT 토큰 기반
+2. 🎮 내전 시스템: 방 생성/참가, 팀 구성(경매/가위바위보), 라인 선택, 밴픽
+3. 📊 전적 분석: Riot API 연동, op.gg 스타일 전적 카드
+4. 💬 커뮤니티: 친구 시스템, 실시간 DM, 게시판
+5. 📺 스트리머: 등록/관리, 방송 정보 표시
+6. 🔍 검색: Riot ID 검색, 사용자 프로필 관리
+
+🏗️ 프로젝트 구조
+-----------------
+Frontend (src/):
+- components/: Auth, CustomGame, MyPage, Community, Streamer, Layout, common
+- services/: api.ts, riotApi.ts, socket.ts
+- store/: useAppStore.ts (Zustand)
+- types/: TypeScript 타입 정의
+- hooks/: useTheme.ts
+
+Backend (backend/src/):
+- routes/: auth, users, customGames, matches, friends, chat, community, streamers, tournaments
+- config/: database, redis, passport, socket
+- database/: init, migrate, seed
+- middleware/: rateLimit
+- server.js: 메인 서버 파일
+
+🎨 UI/UX 특징
+--------------
+- 다크 테마 기본 제공
+- 디스코드 스타일 레이아웃
+- 사이드바 네비게이션 + 통합된 친구 패널
+- 반응형 디자인 (모바일/태블릿/데스크톱)
+- CSS 변수 기반 테마 시스템
+
+🚀 주요 API 엔드포인트
+---------------------
+- 인증: /auth/login, /auth/register, /auth/oauth/callback, /auth/me
+- 내전: /custom-games, /custom-games/:id, /custom-games/:id/join
+- 전적: /matches/user/:userId, /riot/summoner/:name
+- 친구: /friends, /friends/request, /friends/:id/status
+- 커뮤니티: /community/posts, /community/posts/:id
+- 스트리머: /streamers, /streamers/:id
+
+📊 현재 개발 진행률
+-------------------
+- 전체 프로젝트: 72%
+- 프론트엔드: 78%
+- 백엔드: 67%
+- 데이터베이스: 85%
+- 실시간 기능: 62%
+
+🔧 최근 완료된 작업 (2025-08-05)
+--------------------------------
+- 인증 오류 해결 (토큰 확인 로직 추가)
+- 친구 패널 통합 및 UI 개선
+- 디스코드 스타일 레이아웃 적용
+- 테마 시스템 개선 (data-theme 속성 사용)
+- API 서비스 개선 (에러 처리 강화)
+
+🎯 다음 우선순위 작업
+---------------------
+1. 메시지 시스템 완성 (1주 내)
+2. 경매/가위바위보 시스템 개선 (1주 내)
+3. 커뮤니티 기능 강화 (2주 내)
+4. 전체 시스템 통합 테스트 및 성능 최적화 (1개월 내)
+
+🏷️ 주요 태그 시스템
+-------------------
+기능별: #인증 #내전 #전적 #커뮤니티 #스트리머 #검색 #프로필
+기술별: #React #TypeScript #Node.js #PostgreSQL #Socket.IO #TailwindCSS
+상태별: #개발중 #완료 #버그 #개선 #테스트
+
+📋 개발 규칙
+-------------
+- TypeScript 사용 필수
+- 함수형 컴포넌트 및 훅 사용
+- ESLint 및 Prettier 규칙 준수
+- 한국어 주석 사용
+- PascalCase (컴포넌트), camelCase (함수/변수)
+- 기능별 폴더 분리
+- Zustand로 상태 관리
+- Axios로 API 통신
+- Socket.IO로 실시간 통신
+
+🔒 보안 및 성능
+----------------
+- JWT 토큰 사용
+- CORS 설정
+- Rate Limiting 적용
+- 입력 검증 필수
+- React.memo, useCallback, useMemo 활용
+- 이미지 최적화
+- 코드 스플리팅 적용
+
+🧪 테스트 및 품질
+-----------------
+- 단위 테스트 작성
+- 통합 테스트 구현
+- E2E 테스트 계획
+- 코드 리뷰 필수
+- 커밋 메시지 규칙 준수
+- Git 브랜치 규칙 준수
+
+🚀 배포 환경
+------------
+개발: localhost:3000 (Frontend), localhost:5000 (Backend)
+프로덕션: Vercel/Netlify (Frontend), AWS/DigitalOcean (Backend)
+
+📈 향후 계획
+-------------
+단기 (1-2개월): 실시간 채팅, 내전방 관리, 팀 구성 시스템 완성
+중기 (3-6개월): 모바일 최적화, 성능 최적화, 테스트 코드 작성
+장기 (6개월 이상): 모바일 앱, AI 매칭 시스템, 실시간 스트리밍 통합
+
+🤝 기여 가이드
+--------------
+- 이슈 리포트: 재현 단계 포함
+- PR 가이드라인: 브랜치명 규칙, 코드 리뷰 필수
+- 테스트: 새로운 기능에 대한 테스트 포함
+
+=====================================
+📅 작성일: 2025-08-06
+📝 작성자: AI Assistant
+🏷️ 프로젝트: NEXUS - LoL 커뮤니티 플랫폼
+
+

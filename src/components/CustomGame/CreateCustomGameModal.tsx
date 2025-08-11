@@ -187,7 +187,7 @@ const CreateCustomGameModal: React.FC<CreateCustomGameModalProps> = ({
                   required
                   value={formData.maxPlayers}
                   onChange={(e) =>
-                    handleInputChange("maxPlayers", parseInt(e.target.value))
+                    handleInputChange("maxPlayers", Number(e.target.value))
                   }
                   className="w-full px-3 py-2 bg-bg-primary border border-border rounded-md text-text-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 >

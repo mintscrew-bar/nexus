@@ -304,6 +304,11 @@ router.post("/:gameId/join", isAuthenticated, async (req, res) => {
 
     console.log("✅ User", userId, "joined game", gameId);
 
+    const { getIo } = require("../config/socket");
+    const io = getIo();
+    const updatedGame = await getOne("SELECT * FROM custom_games WHERE id = $1", [gameId]);
+    io.to(`game-${gameId}`).emit('game:updated', updatedGame);
+
     res.json({
       message: "Successfully joined the game",
       data: { gameId, userId },
@@ -368,6 +373,11 @@ router.delete("/:gameId/leave", isAuthenticated, async (req, res) => {
       await execute("DELETE FROM custom_games WHERE id = $1", [gameId]);
       console.log(`🗑️ Game ${gameId} deleted - no participants remain`);
 
+      const { getIo } = require("../config/socket");
+      const io = getIo();
+      const updatedGame = await getOne("SELECT * FROM custom_games WHERE id = $1", [gameId]);
+      io.to(`game-${gameId}`).emit('game:updated', updatedGame);
+
       res.json({
         message:
           "Left custom game successfully. Game deleted as no participants remain.",
@@ -395,6 +405,11 @@ router.delete("/:gameId/leave", isAuthenticated, async (req, res) => {
           `👑 Leadership transferred to ${nextLeader.nexus_nickname} (${nextLeader.user_id}) in game ${gameId}`
         );
 
+        const { getIo } = require("../config/socket");
+        const io = getIo();
+        const updatedGame = await getOne("SELECT * FROM custom_games WHERE id = $1", [gameId]);
+        io.to(`game-${gameId}`).emit('game:updated', updatedGame);
+
         res.json({
           message: `Left custom game successfully. Leadership transferred to ${nextLeader.nexus_nickname}.`,
         });
@@ -411,6 +426,11 @@ router.delete("/:gameId/leave", isAuthenticated, async (req, res) => {
         });
       }
     } else {
+      const { getIo } = require("../config/socket");
+      const io = getIo();
+      const updatedGame = await getOne("SELECT * FROM custom_games WHERE id = $1", [gameId]);
+      io.to(`game-${gameId}`).emit('game:updated', updatedGame);
+
       res.json({
         message: "Left custom game successfully",
       });
@@ -449,6 +469,11 @@ router.post("/:gameId/start", isAuthenticated, async (req, res) => {
       ["in-progress", gameId]
     );
 
+    const { getIo } = require("../config/socket");
+    const io = getIo();
+    const updatedGame = await getOne("SELECT * FROM custom_games WHERE id = $1", [gameId]);
+    io.to(`game-${gameId}`).emit('game:updated', updatedGame);
+
     res.json({
       message: "Custom game started successfully",
     });
@@ -486,6 +511,11 @@ router.post("/:gameId/end", isAuthenticated, async (req, res) => {
       ["completed", gameId]
     );
 
+    const { getIo } = require("../config/socket");
+    const io = getIo();
+    const updatedGame = await getOne("SELECT * FROM custom_games WHERE id = $1", [gameId]);
+    io.to(`game-${gameId}`).emit('game:updated', updatedGame);
+
     res.json({
       message: "Custom game ended successfully",
     });
@@ -519,6 +549,10 @@ router.delete("/:gameId", isAuthenticated, async (req, res) => {
 
     // Delete game (participants and messages will be deleted due to CASCADE)
     await execute("DELETE FROM custom_games WHERE id = $1", [gameId]);
+
+    const { getIo } = require("../config/socket");
+    const io = getIo();
+    io.to(`game-${gameId}`).emit('game:deleted');
 
     res.json({
       message: "Custom game deleted successfully",
@@ -587,6 +621,11 @@ router.post("/:gameId/start-election", isAuthenticated, async (req, res) => {
       ["team-leader-election", gameId]
     );
 
+    const { getIo } = require("../config/socket");
+    const io = getIo();
+    const updatedGame = await getOne("SELECT * FROM custom_games WHERE id = $1", [gameId]);
+    io.to(`game-${gameId}`).emit('game:updated', updatedGame);
+
     res.json({
       message: "Team leader election started successfully",
     });
@@ -633,6 +672,11 @@ router.post("/:gameId/elect-leaders", isAuthenticated, async (req, res) => {
       ["team-formation", gameId]
     );
 
+    const { getIo } = require("../config/socket");
+    const io = getIo();
+    const updatedGame = await getOne("SELECT * FROM custom_games WHERE id = $1", [gameId]);
+    io.to(`game-${gameId}`).emit('game:updated', updatedGame);
+
     res.json({
       message: "Team leaders elected successfully",
     });
@@ -670,6 +714,11 @@ router.post("/:gameId/join-team", isAuthenticated, async (req, res) => {
       "INSERT INTO game_team_members (team_id, user_id) VALUES ($1, $2)",
       [teamId, userId]
     );
+
+    const { getIo } = require("../config/socket");
+    const io = getIo();
+    const updatedGame = await getOne("SELECT * FROM custom_games WHERE id = $1", [gameId]);
+    io.to(`game-${gameId}`).emit('game:updated', updatedGame);
 
     res.json({
       message: "Joined team successfully",
@@ -709,6 +758,11 @@ router.post("/:gameId/auction/bid", isAuthenticated, async (req, res) => {
        VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)`,
       [gameId, userId, playerId, bidAmount]
     );
+
+    const { getIo } = require("../config/socket");
+    const io = getIo();
+    const updatedGame = await getOne("SELECT * FROM custom_games WHERE id = $1", [gameId]);
+    io.to(`game-${gameId}`).emit('auction:bid', { gameId, userId, playerId, bidAmount });
 
     res.json({
       message: "Bid placed successfully",
@@ -776,6 +830,10 @@ router.post("/:gameId/rps/play", isAuthenticated, async (req, res) => {
       [gameId, userId, choice]
     );
 
+    const { getIo } = require("../config/socket");
+    const io = getIo();
+    io.to(`game-${gameId}`).emit('rps:choice', { gameId, userId, choice });
+
     res.json({
       message: "RPS choice saved successfully",
     });
@@ -842,6 +900,11 @@ router.post(
         ["line-selection", gameId]
       );
 
+      const { getIo } = require("../config/socket");
+      const io = getIo();
+      const updatedGame = await getOne("SELECT * FROM custom_games WHERE id = $1", [gameId]);
+      io.to(`game-${gameId}`).emit('game:updated', updatedGame);
+
       res.json({
         message: "Line selection started successfully",
       });
@@ -894,6 +957,11 @@ router.post("/:gameId/select-line", isAuthenticated, async (req, res) => {
        VALUES ($1, $2, $3)`,
       [gameId, userId, lineName]
     );
+
+    const { getIo } = require("../config/socket");
+    const io = getIo();
+    const updatedGame = await getOne("SELECT * FROM custom_games WHERE id = $1", [gameId]);
+    io.to(`game-${gameId}`).emit('game:updated', updatedGame);
 
     res.json({
       message: "Line position selected successfully",
@@ -949,6 +1017,11 @@ router.post("/:gameId/start-game", isAuthenticated, async (req, res) => {
       "UPDATE custom_games SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
       ["in-progress", gameId]
     );
+
+    const { getIo } = require("../config/socket");
+    const io = getIo();
+    const updatedGame = await getOne("SELECT * FROM custom_games WHERE id = $1", [gameId]);
+    io.to(`game-${gameId}`).emit('game:updated', updatedGame);
 
     res.json({
       message: "Game started successfully",

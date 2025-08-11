@@ -122,6 +122,8 @@ export interface Friend {
 export interface FriendRequest {
   id: number;
   fromUser: User;
+  toUser: User;
+  status: "pending" | "accepted" | "rejected";
   createdAt: Date;
 }
 
@@ -310,4 +312,12 @@ export interface TournamentResult {
   tournament: Tournament;
   bracket: TournamentBracket;
   finalStandings: TournamentParticipant[];
+}
+
+export interface SearchResult {
+  id: number;
+  nexusNickname: string;
+  avatarUrl?: string;
+  isOnline: boolean;
+  lastSeen?: string;
 }

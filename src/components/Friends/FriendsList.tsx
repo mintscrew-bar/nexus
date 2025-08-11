@@ -1,5 +1,5 @@
 import { Check, MessageSquare, Search, UserPlus, Users, X } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import apiService from "../../services/api";
 import socketService from "../../services/socket";
 import { useAppStore } from "../../store/useAppStore";
@@ -18,23 +18,7 @@ const FriendsList: React.FC = () => {
   const [loadingFriends, setLoadingFriends] = useState(false);
   const [loadingRequests, setLoadingRequests] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      setLoading(true); // user가 있을 때 로딩 시작
-      loadFriends();
-      loadFriendRequests();
-      setupSocketListeners();
-    }
-  }, [user]);
-
-  // 두 로딩 상태가 모두 완료되면 전체 로딩 상태 해제
-  useEffect(() => {
-    if (!loadingFriends && !loadingRequests) {
-      setLoading(false);
-    }
-  }, [loadingFriends, loadingRequests]);
-
-  const loadFriends = async () => {
+  const loadFriends = useCallback(async () => {
     try {
       setLoadingFriends(true);
       setError(null);
@@ -48,9 +32,9 @@ const FriendsList: React.FC = () => {
     } finally {
       setLoadingFriends(false);
     }
-  };
+  }, []);
 
-  const loadFriendRequests = async () => {
+  const loadFriendRequests = useCallback(async () => {
     try {
       setLoadingRequests(true);
       const response = await apiService.getFriendRequests();
@@ -64,29 +48,45 @@ const FriendsList: React.FC = () => {
     } finally {
       setLoadingRequests(false);
     }
-  };
+  }, []);
 
-  const setupSocketListeners = () => {
-    socketService.onFriendOnline((data) => {
-      setFriends((prev) =>
-        prev.map((friend) =>
-          friend.friendUserId === data.userId
-            ? { ...friend, isOnline: true }
-            : friend
-        )
-      );
-    });
+  useEffect(() => {
+    if (user) {
+      setLoading(true);
+      loadFriends();
+      loadFriendRequests();
 
-    socketService.onFriendOffline((data) => {
-      setFriends((prev) =>
-        prev.map((friend) =>
-          friend.friendUserId === data.userId
-            ? { ...friend, isOnline: false }
-            : friend
-        )
-      );
-    });
-  };
+      const handleFriendOnline = (data: { userId: number }) => {
+        setFriends((prev) =>
+          prev.map((friend) =>
+            friend.friendUserId === data.userId
+              ? { ...friend, isOnline: true }
+              : friend
+          )
+        );
+      };
+
+      const handleFriendOffline = (data: { userId: number }) => {
+        setFriends((prev) =>
+          prev.map((friend) =>
+            friend.friendUserId === data.userId
+              ? { ...friend, isOnline: false }
+              : friend
+          )
+        );
+      };
+
+      socketService.onFriendOnline(handleFriendOnline);
+      socketService.onFriendOffline(handleFriendOffline);
+
+      return () => {
+        socketService.off('friend:online', handleFriendOnline);
+        socketService.off('friend:offline', handleFriendOffline);
+      };
+    }
+  }, [user, loadFriends, loadFriendRequests]);
+
+  
 
   const handleAcceptRequest = async (requestId: number) => {
     try {

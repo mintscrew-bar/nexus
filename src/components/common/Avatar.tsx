@@ -30,9 +30,12 @@ const Avatar: React.FC<AvatarProps> = ({
       onError={(e) => {
         // 아바타 로드 실패 시 기본 아바타로 대체
         const target = e.target as HTMLImageElement;
-        if (target.src !== defaultAvatar) {
-          target.src = defaultAvatar;
+        if (target.src === defaultAvatar) {
+          console.error("아바타 로드 실패", defaultAvatar);
+          return;
         }
+        target.src = defaultAvatar;
+        console.warn(`아바타 로드 실패 ${target.src}`, defaultAvatar);
       }}
     />
   );

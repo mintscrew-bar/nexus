@@ -293,43 +293,44 @@ const CustomGameDetail: React.FC<CustomGameDetailProps> = () => {
     fetchLinePositions();
   }, [gameId]);
 
-  // 실시간 참가자 상태 모니터링
   useEffect(() => {
     if (!gameId) return;
 
-    const setupRealtimeMonitoring = () => {
-      // 참가자 온라인 상태 업데이트
-      socketService.onPlayerJoined((data) => {
-        setOnlineParticipants(
-          (prev) => new Set([...Array.from(prev), data.userId])
-        );
-      });
+    const handlePlayerJoined = (data: { userId: number }) => {
+      setOnlineParticipants((prev) => new Set([...Array.from(prev), data.userId]));
+    };
 
-      socketService.onPlayerLeft((data) => {
-        setOnlineParticipants((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(data.userId);
-          return newSet;
-        });
-      });
-
-      // 게임 진행 상태 업데이트
-      socketService.onGameProgressUpdate((data) => {
-        setGameProgress({
-          phase: data.phase,
-          timeRemaining: data.timeRemaining,
-          currentStep: data.currentStep,
-        });
+    const handlePlayerLeft = (data: { userId: number }) => {
+      setOnlineParticipants((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(data.userId);
+        return newSet;
       });
     };
 
-    setupRealtimeMonitoring();
+    const handleGameProgressUpdate = (data: any) => {
+      setGameProgress({
+        phase: data.phase,
+        timeRemaining: data.timeRemaining,
+        currentStep: data.currentStep,
+      });
+    };
+
+    socketService.on("custom-game:player-joined", handlePlayerJoined);
+    socketService.on("custom-game:player-left", handlePlayerLeft);
+    socketService.on("custom-game:progress-update", handleGameProgressUpdate);
+
+    const handleGameUpdate = (updatedGame: CustomGame) => {
+      setGame(updatedGame);
+    };
+
+    socketService.on('game:updated', handleGameUpdate);
 
     return () => {
-      // Cleanup socket listeners
-      socketService.off("playerJoined");
-      socketService.off("playerLeft");
-      socketService.off("gameProgressUpdate");
+      socketService.off("custom-game:player-joined", handlePlayerJoined);
+      socketService.off("custom-game:player-left", handlePlayerLeft);
+      socketService.off("custom-game:progress-update", handleGameProgressUpdate);
+      socketService.off('game:updated', handleGameUpdate);
     };
   }, [gameId]);
 
@@ -362,7 +363,7 @@ const CustomGameDetail: React.FC<CustomGameDetailProps> = () => {
     setIsJoining(true);
     try {
       await apiService.joinCustomGame(game.id);
-      window.location.reload();
+      apiService.getCustomGame(parseInt(gameId!)).then(setGame);
     } catch (error) {
       console.error("Failed to join game:", error);
       setError("게임 참가에 실패했습니다.");
@@ -377,7 +378,7 @@ const CustomGameDetail: React.FC<CustomGameDetailProps> = () => {
     setIsJoining(true);
     try {
       await apiService.joinCustomGame(game.id);
-      window.location.reload();
+      apiService.getCustomGame(parseInt(gameId!)).then(setGame);
     } catch (error) {
       console.error("Failed to join game:", error);
       alert("게임 참가에 실패했습니다. 다시 시도해주세요.");
@@ -394,7 +395,7 @@ const CustomGameDetail: React.FC<CustomGameDetailProps> = () => {
       await apiService.joinCustomGame(game.id, password);
       setShowPasswordModal(false);
       setPassword("");
-      window.location.reload();
+      apiService.getCustomGame(parseInt(gameId!)).then(setGame);
     } catch (error) {
       console.error("Failed to join game with password:", error);
       setError("비밀번호가 올바르지 않습니다.");
@@ -432,7 +433,7 @@ const CustomGameDetail: React.FC<CustomGameDetailProps> = () => {
     try {
       await apiService.startCustomGame(parseInt(gameId));
       // 게임 시작 성공 시 페이지 새로고침
-      window.location.reload();
+      apiService.getCustomGame(parseInt(gameId!)).then(setGame);
     } catch (error) {
       console.error("Failed to start game:", error);
       alert("게임 시작에 실패했습니다. 다시 시도해주세요.");
@@ -452,7 +453,7 @@ const CustomGameDetail: React.FC<CustomGameDetailProps> = () => {
     try {
       await apiService.endCustomGame(parseInt(gameId));
       // 게임 종료 성공 시 페이지 새로고침
-      window.location.reload();
+      apiService.getCustomGame(parseInt(gameId!)).then(setGame);
     } catch (error) {
       console.error("Failed to end game:", error);
       alert("게임 종료에 실패했습니다. 다시 시도해주세요.");
@@ -477,7 +478,7 @@ const CustomGameDetail: React.FC<CustomGameDetailProps> = () => {
         tournamentName.trim()
       );
       // 토너먼트 생성 성공 시 페이지 새로고침
-      window.location.reload();
+      apiService.getCustomGame(parseInt(gameId!)).then(setGame);
     } catch (error) {
       console.error("Failed to create tournament:", error);
       alert("토너먼트 생성에 실패했습니다. 다시 시도해주세요.");
@@ -492,7 +493,7 @@ const CustomGameDetail: React.FC<CustomGameDetailProps> = () => {
     setIsStarting(true);
     try {
       await apiService.startTeamLeaderElection(parseInt(gameId));
-      window.location.reload();
+      apiService.getCustomGame(parseInt(gameId!)).then(setGame);
     } catch (error) {
       console.error("Failed to start team leader election:", error);
       alert("팀장 선출 시작에 실패했습니다. 다시 시도해주세요.");
@@ -507,7 +508,7 @@ const CustomGameDetail: React.FC<CustomGameDetailProps> = () => {
     setIsStarting(true);
     try {
       await apiService.startLineSelection(parseInt(gameId));
-      window.location.reload();
+      apiService.getCustomGame(parseInt(gameId!)).then(setGame);
     } catch (error) {
       console.error("Failed to start line selection:", error);
       alert("라인 선택 시작에 실패했습니다. 다시 시도해주세요.");
@@ -522,7 +523,7 @@ const CustomGameDetail: React.FC<CustomGameDetailProps> = () => {
     setIsStarting(true);
     try {
       await apiService.startGame(parseInt(gameId));
-      window.location.reload();
+      apiService.getCustomGame(parseInt(gameId!)).then(setGame);
     } catch (error) {
       console.error("Failed to start game:", error);
       alert("게임 시작에 실패했습니다. 다시 시도해주세요.");
@@ -743,7 +744,7 @@ const CustomGameDetail: React.FC<CustomGameDetailProps> = () => {
               <TeamLeaderElection
                 game={game}
                 participants={game.participants || []}
-                onComplete={() => window.location.reload()}
+                onComplete={() => apiService.getCustomGame(parseInt(gameId!))}
               />
             )}
 
@@ -755,7 +756,7 @@ const CustomGameDetail: React.FC<CustomGameDetailProps> = () => {
                     game={game}
                     participants={game.participants || []}
                     captains={[]} // 기존 방식에서는 팀장 선출 없이 사용
-                    onComplete={() => window.location.reload()}
+                    onComplete={() => apiService.getCustomGame(parseInt(gameId!))}
                   />
                 )}
 
@@ -764,14 +765,14 @@ const CustomGameDetail: React.FC<CustomGameDetailProps> = () => {
                     game={game}
                     participants={game.participants || []}
                     captains={[]} // 기존 방식에서는 팀장 선출 없이 사용
-                    onComplete={() => window.location.reload()}
+                    onComplete={() => apiService.getCustomGame(parseInt(gameId!))}
                   />
                 )}
 
                 {game.team_composition === "none" && (
                   <TeamFormation
                     game={game}
-                    onComplete={() => window.location.reload()}
+                    onComplete={() => apiService.getCustomGame(parseInt(gameId!))}
                   />
                 )}
               </>
@@ -780,7 +781,7 @@ const CustomGameDetail: React.FC<CustomGameDetailProps> = () => {
             {game.status === "line-selection" && (
               <LineSelection
                 game={game}
-                onComplete={() => window.location.reload()}
+                onComplete={() => apiService.getCustomGame(parseInt(gameId!))}
               />
             )}
 

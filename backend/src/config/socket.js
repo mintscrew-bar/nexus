@@ -1,9 +1,10 @@
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
+const { JWT_SECRET, FRONTEND_URL } = require("./passport");
 
-const JWT_SECRET = process.env.JWT_SECRET || "nexus-super-secret-jwt-key-2024";
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+console.log("FRONTEND_URL", FRONTEND_URL);
 
+// 소켓 설정
 const setupSocketIO = (server) => {
   const io = new Server(server, {
     cors: {

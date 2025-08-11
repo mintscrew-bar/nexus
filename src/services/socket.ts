@@ -375,6 +375,14 @@ class SocketService {
     this.addEventListener("friend:offline", callback);
   }
 
+  onFriendRequest(callback: (data: any) => void) {
+    this.addEventListener("friend:request", callback);
+  }
+
+  on(event: string, callback: (...args: any[]) => void) {
+    this.addEventListener(event, callback);
+  }
+
   // 친구 알림 관련
   notifyFriends(friendIds: number[]) {
     if (!this.socket) {
