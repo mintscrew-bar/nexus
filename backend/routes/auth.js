@@ -3,9 +3,31 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const router = express.Router();
 const nodemailer = require("nodemailer");
+const bcrypt = require("bcryptjs"); // bcryptjs 모듈 추가
 
 // 메모리 임시 저장 (실서비스는 Redis 등 사용 권장)
 const emailCodes = {};
+
+// 비밀번호 복잡성 검증 헬퍼 함수
+const validatePasswordComplexity = (password) => {
+  if (password.length < 8) {
+    return false;
+  }
+  let complexityCount = 0;
+  if (/[a-z]/.test(password)) {
+    complexityCount++;
+  }
+  if (/[A-Z]/.test(password)) {
+    complexityCount++;
+  }
+  if (/[0-9]/.test(password)) {
+    complexityCount++;
+  }
+  if (/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
+    complexityCount++;
+  }
+  return complexityCount >= 3;
+};
 
 // 회원가입
 router.post("/signup", async (req, res) => {
@@ -24,12 +46,27 @@ router.post("/signup", async (req, res) => {
     } = req.body;
     if (!email || !password || !username)
       return res.status(400).json({ error: "필수 정보를 입력하세요." });
-    const exists = await User.findOne({ email });
-    if (exists)
+
+    // 비밀번호 복잡성 검증 추가
+    if (!validatePasswordComplexity(password)) {
+      return res.status(400).json({ error: "비밀번호는 8자 이상, 대/소문자, 숫자, 특수문자 중 3종류 이상을 포함해야 합니다." });
+    }
+
+    // 이메일 및 사용자명 중복 검증 추가
+    const emailExists = await User.findOne({ email });
+    if (emailExists)
       return res.status(409).json({ error: "이미 가입된 이메일입니다." });
+
+    const usernameExists = await User.findOne({ username });
+    if (usernameExists)
+      return res.status(409).json({ error: "이미 사용 중인 사용자명입니다." });
+
+    // 비밀번호 해시 (보안을 위해 필수)
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = new User({
       email,
-      password,
+      password: hashedPassword, // 해시된 비밀번호로 변경
       username,
       phone,
       postcode,
@@ -52,14 +89,13 @@ router.post("/login", async (req, res) => {
     const { email, password, autoLogin } = req.body;
     const user = await User.findOne({ email });
     if (!user)
-      return res
-        .status(401)
-        .json({ error: "이메일 또는 비밀번호가 올바르지 않습니다." });
-    const isMatch = await user.comparePassword(password);
+      return res.status(401).json({ error: "이메일 또는 비밀번호가 올바르지 않습니다." });
+    
+    // User 모델의 comparePassword 메소드가 bcrypt를 사용하도록 가정
+    const isMatch = await user.comparePassword(password); 
     if (!isMatch)
-      return res
-        .status(401)
-        .json({ error: "이메일 또는 비밀번호가 올바르지 않습니다." });
+      return res.status(401).json({ error: "이메일 또는 비밀번호가 올바르지 않습니다." });
+      
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: autoLogin ? "30d" : "1d",
     });
@@ -86,10 +122,8 @@ router.post("/send-email-code", async (req, res) => {
   const { email, code } = req.body;
   if (!email || !code)
     return res.status(400).json({ error: "이메일과 코드가 필요합니다." });
-  // 실제 서비스에서는 이메일 중복 체크 등 추가 가능
-  // 메일 발송
+  
   try {
-    // Gmail 등 SMTP 설정 필요 (아래는 예시)
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -106,7 +140,7 @@ router.post("/send-email-code", async (req, res) => {
     emailCodes[email] = code;
     setTimeout(() => {
       delete emailCodes[email];
-    }, 180 * 1000); // 3분 후 만료
+    }, 180 * 1000); 
     res.json({ success: true, message: "인증번호가 발송되었습니다." });
   } catch (err) {
     res.status(500).json({ error: "이메일 발송 실패" });
@@ -132,10 +166,12 @@ router.post("/forgot-password", async (req, res) => {
   const user = await User.findOne({ email });
   if (!user)
     return res.status(404).json({ error: "가입된 이메일이 없습니다." });
-  // 임시 비밀번호 생성
+    
+  // 임시 비밀번호 생성 및 해시
   const tempPassword = Math.random().toString(36).slice(-10);
   user.password = tempPassword;
   await user.save();
+  
   try {
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -157,13 +193,18 @@ router.post("/forgot-password", async (req, res) => {
 router.post("/reset-password", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
-    return res
-      .status(400)
-      .json({ error: "이메일과 새 비밀번호가 필요합니다." });
+    return res.status(400).json({ error: "이메일과 새 비밀번호가 필요합니다." });
   const user = await User.findOne({ email });
   if (!user)
     return res.status(404).json({ error: "가입된 이메일이 없습니다." });
-  user.password = password;
+    
+  // 비밀번호 복잡성 검증 추가
+  if (!validatePasswordComplexity(password)) {
+    return res.status(400).json({ error: "새 비밀번호는 8자 이상, 대/소문자, 숫자, 특수문자 중 3종류 이상을 포함해야 합니다." });
+  }
+
+  // 비밀번호 해시 및 저장
+  user.password = password; // User 모델의 pre-save hook이 해시를 처리한다고 가정
   await user.save();
   res.json({ success: true });
 });
